@@ -49,8 +49,14 @@ function parseParagraph(tokens: Token[], i: number) {
     if (!token) throw new ASTUnexpectedEOFError();
 
     if (token.type == TokenType.Newline) {
-      i++;
-      break;
+      if (tokens[i + 1]?.type === TokenType.Newline) {
+        i += 2;
+        break;
+      } else {
+        i++;
+        children.push({ type: ASTNodeType.Text, value: " " });
+        continue;
+      }
     }
 
     const result = parseInline(tokens, i);

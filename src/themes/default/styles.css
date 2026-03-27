@@ -106,13 +106,6 @@ body {
   background-color: white;
 }
 
-.doc-title {
-  font-size: 2em;
-  font-family: "Georgia", serif;
-  border-bottom: 1px solid #a2a9b1;
-  padding-bottom: 0.2em;
-}
-
 .doc-byline {
   font-size: 0.9em;
   margin-top: 0.4em;
@@ -193,4 +186,33 @@ body {
 .doc-footer p {
   margin: 0;
   margin-bottom: 0.5em;
+}
+
+.doc-injected p {
+  margin: 0;
+  margin-bottom: 0.5em;
+}
+
+.doc-injected h2 {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 1.75em;
+  font-weight: 400;
+
+  margin-bottom: 0px;
+  margin-top: 4px;
+}
+
+.doc-injected {
+  margin-top: 1.25em;
+}
+
+.doc-title {
+  font-size: 2em;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  border-bottom: 1px solid #a2a9b1;
+  padding-bottom: 0.2em;
+}
+
+.sgw-unknown-link, .sgw-unknown-template {
+  color: rgb(199, 25, 25);
 }

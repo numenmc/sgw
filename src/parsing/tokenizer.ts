@@ -100,7 +100,7 @@ export function tokenizeInput(input: string): Token[] {
 
     // 6. Template
     {
-      const match = input.slice(i).match(/^\{\{\s*(.+?)\s*\}\}/);
+      const match = input.slice(i).match(/^\{\{\s*([\s\S]+?)\s*\}\}/);
       if (match) {
         const parts = ((text: string) => {
           const parts: string[] = [];

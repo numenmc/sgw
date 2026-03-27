@@ -1,0 +1,106 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+
+import { ASTNodeType, type ASTNode } from "./parsing.types.js";
+import { safeFilename } from "../build.js";
+import type { SGWConfig } from "../config.types.js";
+
+export async function toHtml(
+  node: ASTNode,
+  dirInput: string,
+  config: SGWConfig,
+  linkMap: Record<string, string>
+): Promise<string> {
+  switch (node.type) {
+    case ASTNodeType.Document: {
+      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      return children.join("");
+    }
+
+    case ASTNodeType.Paragraph: {
+      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      return children.length > 0 ? `<p>${children.join("")}</p>` : "";
+    }
+
+    case ASTNodeType.Header: {
+      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      return `<h${node.level}>${children.join("")}</h${node.level}>`;
+    }
+
+    case ASTNodeType.Bold: {
+      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      return `<strong>${children.join("")}</strong>`;
+    }
+
+    case ASTNodeType.Italic: {
+      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      return `<em>${children.join("")}</em>`;
+    }
+
+    case ASTNodeType.Link: {
+      const target = node.target.trim();
+      const isExternal = /^https?:\/\//.test(target);
+
+      const href = isExternal ? target : linkMap[target];
+
+      const label = node.text.trim() == "" ? target : node.text;
+
+      if (href && isExternal) {
+        return `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+      }
+
+      if (href && !isExternal) {
+        const isIndex = target == config.build.index;
+        return `<a href="${escapeHtml(isIndex ? "index" : safeFilename(target))}.html">${escapeHtml(label)}</a>`;
+      }
+
+      return `<span class="sgw-unknown-link">${escapeHtml(label)}</span>`;
+    }
+
+    case ASTNodeType.Text:
+      return escapeHtml(node.value);
+
+    case ASTNodeType.Template:
+      return await renderTemplate(dirInput, node.name, node.args);
+  }
+}
+
+async function renderTemplate(
+  dirInput: string,
+  templateName: string,
+  args: string[]
+): Promise<string> {
+  const templatePath = path.join(dirInput, "Template", `${templateName}.sgw.js`);
+  if (!(await fileExists(templatePath)))
+    return `<span class="sgw-unknown-template">Unknown template "${escapeHtml(templateName)}"</span>`;
+
+  const params = Object.fromEntries(
+    args.map((arg) => {
+      const index = arg.indexOf("=");
+
+      if (index === -1) {
+        return [arg, ""];
+      }
+
+      const key = arg.slice(0, index);
+      const value = arg.slice(index + 1);
+
+      return [key, value];
+    })
+  );
+
+  return await (await import(`file://${templatePath}`)).default(params, { safe: escapeHtml });
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}

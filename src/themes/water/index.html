@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article.title }} - {{ meta.wikiName }}</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+
+    <style>
+        .sgw-unknown-link,
+        .sgw-unknown-template {
+            color: rgb(243, 122, 122);
+        }
+    </style>
+</head>
+
+<body>
+    <nav style="background: var(--background); display: flex; padding: 0.5em; gap: 1em; border-radius: 0.5em; align-items: center; gap: 0.5em; padding-right: 1em;">
+        <a href="/"><img src="/static/site-logo.webp" alt="Site Logo" width="32" height="32" style="display: block;"></a>
+    </nav>
+    <div>
+        <h1 style="margin-bottom: 0;">{{ article.title }}</h1>
+        <div>[ <a href="/">Source</a> ] [ <a href="/">View History</a> ]</div>
+        <hr>
+        {{ article.html | safe }}
+    </div>
+
+    <footer>
+        <p>
+            This page was last modified <span data-date="{{ meta.lastModified }}">{{ meta.lastModified }}</span>. This is commit {{ meta.gitCommit }} built at <span data-date="{{ meta.buildTime }}">{{ meta.buildTime }}</span>.
+        </p>
+
+        <div style="text-align: center;">
+            <!-- Consider not removing this -->
+            <img src="/attrib.svg">
+        </div>
+    </footer>
+
+    <script>
+        document.querySelectorAll("[data-date]").forEach(e => {
+            const date = new Date(e.dataset.date);
+            e.textContent = date.toLocaleString();
+        });
+    </script>
+</body>
+
+</html>

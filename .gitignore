@@ -145,6 +145,8 @@ vite.config.ts.timestamp-*
 
 # Demo HTML
 /demo.html
+/demo
+/sgwdist
 
 # VSCode settings
 .vscode/

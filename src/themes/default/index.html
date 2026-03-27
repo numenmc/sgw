@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
+    <title>{{ article.title }} - {{ meta.wikiName }}</title>
 
     <link rel="stylesheet" href="/styles.css">
 </head>
@@ -17,7 +17,7 @@
         <div class="grid-l">
             <div class="site-logo-container">
                 <a href="/">
-                    <img src="/static/site-logo.webp" alt="Site Logo" class="site-logo">
+                    <img src="/static/site-logo.webp" alt="Site Logo" class="site-logo" width="135" height="135">
                 </a>
             </div>
             <div class="side-links">
@@ -25,7 +25,7 @@
                 <a href="/index">Another link</a>
 
                 <h3>Notice</h3>
-                <p>To edit these links, create a copy of <span style="white-space: nowrap;">/themes/default</span> and
+                <p>To edit these links, run <span style="white-space: nowrap;">sgw clone theme default</span> and
                     modify the index.html, specifically at body.content-grid.grid-l.side-links</p>
 
                 <h3>Help</h3>
@@ -57,11 +57,14 @@
                 <!-- -->
 
                 <p>
-                    This page was last modified <span data-date="{{ meta.lastModified }}">{{ meta.lastModified }}</span>. This is commit {{ meta.gitCommit }} built at <span data-date="{{ meta.buildTime }}">{{ meta.buildTime }}</span>.
+                    This page was last modified <span data-date="{{ meta.lastModified }}">{{ meta.lastModified
+                        }}</span>. This is commit {{ meta.gitCommit }} built at <span
+                        data-date="{{ meta.buildTime }}">{{ meta.buildTime }}</span>.
                 </p>
 
-                <p>You can include copyright and licensing information here. You can do so by creating a copy of <span
-                        style="white-space: nowrap">/themes/default</span> and modifying the index.html, specifically at
+                <p>You can include copyright and licensing information here. You can do so by running <span
+                        style="white-space: nowrap;">sgw clone theme default</span> and modifying the index.html,
+                    specifically at
                     body.content-grid.grid-r.doc-footer</p>
             </div>
         </div>

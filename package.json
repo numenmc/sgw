@@ -1,11 +1,11 @@
 {
-  "name": "ssgwiki",
-  "version": "1.0.0",
+  "name": "ssg-wiki",
+  "version": "0.1.0",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "build": "tsc"
+    "build": "node ./build.js"
   },
   "bin": {
     "sgw": "./dist/cli.js"
@@ -18,6 +18,8 @@
     "@eslint/css": "^0.14.1",
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^1.0.1",
+    "@types/express": "^5.0.6",
+    "@types/jsdom": "^28.0.1",
     "@types/node": "^25.3.5",
     "@types/nunjucks": "^3.2.6",
     "eslint": "^10.0.3",
@@ -29,7 +31,11 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "chokidar": "^3.6.0",
     "commander": "^14.0.3",
+    "dompurify": "^3.3.3",
+    "express": "^5.2.1",
+    "jsdom": "^29.0.1",
     "nunjucks": "^3.2.4"
   }
 }
