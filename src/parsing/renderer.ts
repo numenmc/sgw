@@ -24,7 +24,7 @@ export async function toHtml(
 
     case ASTNodeType.Header: {
       const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
-      return `<h${node.level}>${children.join("")}</h${node.level}>`;
+      return `<h${node.level} id="${createHeaderId(children.join(""))}">${children.join("")}</h${node.level}>`;
     }
 
     case ASTNodeType.Bold: {
@@ -103,4 +103,14 @@ async function fileExists(path: string): Promise<boolean> {
 
 export function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+export function createHeaderId(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
