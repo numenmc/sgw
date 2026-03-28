@@ -1,6 +1,6 @@
 {
   "name": "@numenmc/sgw",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
@@ -14,7 +14,9 @@
   "author": "numenmc",
   "license": "MIT",
   "description": "Static site generated wiki software which uses a markup language similar to WikiText and Markdown.",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@eslint/css": "^0.14.1",
     "@eslint/js": "^10.0.1",
