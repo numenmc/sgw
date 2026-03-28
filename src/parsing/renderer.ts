@@ -4,6 +4,7 @@ import path from "node:path";
 import { ASTNodeType, type ASTNode } from "./parsing.types.js";
 import { safeFilename } from "../build.js";
 import type { SGWConfig } from "../config.types.js";
+import { pathToFileURL } from "node:url";
 
 export async function toHtml(
   node: ASTNode,
@@ -89,7 +90,14 @@ async function renderTemplate(
     })
   );
 
-  return await (await import(`file://${templatePath}`)).default(params, { safe: escapeHtml });
+  try {
+    const url = pathToFileURL(templatePath).href;
+    const mod = await import(`${url}?v=${Date.now()}`);
+
+    return await mod.default(params, { safe: escapeHtml });
+  } catch (err) {
+    return `<span class="sgw-unknown-template">${escapeHtml(String(err))}</span>`;
+  }
 }
 
 async function fileExists(path: string): Promise<boolean> {

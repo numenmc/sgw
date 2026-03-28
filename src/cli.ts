@@ -42,8 +42,17 @@ program
     console.log(`Starting dev server on port ${opts.port}...`);
     let currentBuild: BuildResult = await build(inLocation);
 
+    let building = false;
+
     chokidar.watch(inLocation).on("all", async (event, path) => {
-      currentBuild = await build(inLocation, true);
+      if (building) return;
+
+      building = true;
+      try {
+        currentBuild = await build(inLocation, true);
+      } finally {
+        building = false;
+      }
     });
 
     const server = express();
@@ -55,8 +64,7 @@ program
       if (f) {
         res.type(path.extname(p));
         res.send(f);
-      }
-      else res.status(404);
+      } else res.status(404);
     });
 
     server.listen(opts.port, () => {
