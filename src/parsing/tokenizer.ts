@@ -100,43 +100,78 @@ export function tokenizeInput(input: string): Token[] {
 
     // 6. Template
     {
-      const match = input.slice(i).match(/^\{\{\s*([\s\S]+?)\s*\}\}/);
-      if (match) {
-        const parts = ((text: string) => {
-          const parts: string[] = [];
+      if (input.slice(i, i + 2) == "{{") {
+        let start = i + 2;
+        let j = start;
+        let depth = 1;
+        let inQuotes = false;
 
-          let c = "";
-          let inQuotes = false;
+        while (j < input.length && depth > 0) {
+          const two = input.slice(j, j + 2);
+          const char = input[j];
 
-          for (let j = 0; j < text.length; j++) {
-            const char = text[j];
-            if (char == `"` && !inQuotes) {
-              inQuotes = true;
-            } else if (char == `"` && inQuotes) {
-              inQuotes = false;
-            } else if (char == `|` && !inQuotes) {
-              parts.push(c.trim());
-              c = "";
-            } else {
-              c += char;
+          // Toggle quotes
+          if (char == `"`) {
+            inQuotes = !inQuotes;
+            j++;
+            continue;
+          }
+
+          if (!inQuotes) {
+            if (two == "{{") {
+              depth++;
+              j += 2;
+              continue;
+            }
+            if (two == "}}") {
+              depth--;
+              j += 2;
+              continue;
             }
           }
 
-          if (c || parts.length > 0) {
-            parts.push(c.trim());
-          }
+          j++;
+        }
 
-          return parts;
-        })(match[1]!);
+        if (depth == 0) {
+          const content = input.slice(start, j - 2);
 
-        tokens.push({
-          type: TokenType.Template,
-          name: parts[0] ?? "void",
-          args: parts.slice(1)
-        });
+          const parts = (() => {
+            const parts = [];
+            let c = "";
+            let inQuotes = false;
 
-        i += match[0].length;
-        continue;
+            for (let k = 0; k < content.length; k++) {
+              const char = content[k];
+
+              if (char == `"` && !inQuotes) {
+                inQuotes = true;
+              } else if (char == `"` && inQuotes) {
+                inQuotes = false;
+              } else if (char == `|` && !inQuotes) {
+                parts.push(c.trim());
+                c = "";
+              } else {
+                c += char;
+              }
+            }
+
+            if (c || parts.length > 0) {
+              parts.push(c.trim());
+            }
+
+            return parts;
+          })();
+
+          tokens.push({
+            type: TokenType.Template,
+            name: parts[0] ?? "void",
+            args: parts.slice(1)
+          });
+
+          i = j;
+          continue;
+        }
       }
     }
 

@@ -194,7 +194,7 @@ body {
 }
 
 .doc-injected h2 {
-  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-family: Georgia, "Times New Roman", Times, serif;
   font-size: 1.75em;
   font-weight: 400;
 
@@ -208,11 +208,12 @@ body {
 
 .doc-title {
   font-size: 2em;
-  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-family: Georgia, "Times New Roman", Times, serif;
   border-bottom: 1px solid #a2a9b1;
   padding-bottom: 0.2em;
 }
 
-.sgw-unknown-link, .sgw-unknown-template {
+.sgw-unknown-link,
+.sgw-unknown-template {
   color: rgb(199, 25, 25);
 }

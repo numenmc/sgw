@@ -102,7 +102,7 @@ export async function build(
         ? (await getLastModified(gitRoot, path.relative(gitRoot, pagePath))) || undefined
         : undefined
     );
-    
+
     result[outputPath] = rendered;
   }
 

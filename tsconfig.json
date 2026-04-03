@@ -37,7 +37,7 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    
+
     "outDir": "./dist"
   },
   "include": ["src/**/*", "src/templater.ts"]

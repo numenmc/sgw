@@ -8,7 +8,8 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "build": "node ./build.js"
+    "build": "node ./build.js",
+    "format": "prettier --write ."
   },
   "bin": {
     "sgw": "dist/cli.js"

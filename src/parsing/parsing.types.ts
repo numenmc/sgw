@@ -10,8 +10,8 @@ export enum TokenType {
 
 export type Token =
   | { type: TokenType.Text; value: string }
-  | { type: TokenType.Bold; }
-  | { type: TokenType.Italic; }
+  | { type: TokenType.Bold }
+  | { type: TokenType.Italic }
   | { type: TokenType.Header; level: number; value: string }
   | { type: TokenType.Link; target: string; text: string }
   | { type: TokenType.Template; name: string; args: string[] }

@@ -17,28 +17,38 @@ export async function toHtml(
 ): Promise<string> {
   switch (node.type) {
     case ASTNodeType.Document: {
-      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap, encase)));
+      const children = await Promise.all(
+        node.children.map((a) => toHtml(a, dirInput, config, linkMap, encase))
+      );
       return children.join("");
     }
 
     case ASTNodeType.Paragraph: {
-      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      const children = await Promise.all(
+        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
+      );
       if (encase) return children.length > 0 ? `<p>${children.join("")}</p>` : "";
       else return children.join("");
     }
 
     case ASTNodeType.Header: {
-      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      const children = await Promise.all(
+        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
+      );
       return `<h${node.level} id="${createHeaderId(children.join(""))}">${children.join("")}</h${node.level}>`;
     }
 
     case ASTNodeType.Bold: {
-      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      const children = await Promise.all(
+        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
+      );
       return `<strong>${children.join("")}</strong>`;
     }
 
     case ASTNodeType.Italic: {
-      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      const children = await Promise.all(
+        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
+      );
       return `<em>${children.join("")}</em>`;
     }
 

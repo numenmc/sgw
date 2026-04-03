@@ -38,7 +38,8 @@ program
   .action(async (opts, cmd) => {
     if (!opts.input) cmd.error("Property input (-i) not specified.");
     const inLocation = path.resolve(process.cwd(), opts.input as string);
-    const gitRoot = typeof opts.gitroot == "string" ? path.resolve(process.cwd(), opts.gitroot) : null;
+    const gitRoot =
+      typeof opts.gitroot == "string" ? path.resolve(process.cwd(), opts.gitroot) : null;
 
     console.log(`Starting dev server on port ${opts.port}...`);
     let currentBuild: BuildResult = await build(gitRoot, inLocation);
@@ -84,7 +85,8 @@ program
 
     const inLocation = path.resolve(process.cwd(), opts.input as string);
     const outLocation = path.resolve(process.cwd(), opts.output as string);
-    const gitRoot = typeof opts.gitroot == "string" ? path.resolve(process.cwd(), opts.gitroot) : null;
+    const gitRoot =
+      typeof opts.gitroot == "string" ? path.resolve(process.cwd(), opts.gitroot) : null;
 
     console.log(`Building to ${outLocation}`);
 

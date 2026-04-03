@@ -1,81 +1,82 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ article.title }} - {{ meta.wikiName }}</title>
 
-    <link rel="stylesheet" href="/styles.css">
-</head>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
 
-<body>
-    <div class="nav-overlay">
-
-    </div>
+  <body>
+    <div class="nav-overlay"></div>
     <div class="content-grid">
-        <div class="grid-l">
-            <div class="site-logo-container">
-                <a href="/">
-                    <img src="/static/site-logo.webp" alt="Site Logo" class="site-logo" width="135" height="135">
-                </a>
-            </div>
-            <div class="side-links">
-                <a href="/">Main Page</a>
-                <a href="/index">Another link</a>
-
-                <h3>Notice</h3>
-                <p>To edit these links, run <span style="white-space: nowrap;">sgw clone theme default</span> and
-                    modify the index.html, specifically at body.content-grid.grid-l.side-links</p>
-
-                <h3>Help</h3>
-                <a href="#">About</a>
-                <a href="#">Contact</a>
-                <a href="#">Donate</a>
-            </div>
+      <div class="grid-l">
+        <div class="site-logo-container">
+          <a href="/">
+            <img
+              src="/static/site-logo.webp"
+              alt="Site Logo"
+              class="site-logo"
+              width="135"
+              height="135"
+            />
+          </a>
         </div>
-        <div class="grid-r">
-            <div class="doc-links">
-                <a class="link selected" href="#"><span>Article</span></a>
-                <a class="link" href="#"><span>Source</span></a>
-                <div class="spacer"></div>
-            </div>
-            <div class="doc-body">
-                <div class="doc-title">
-                    {{ article.title }}
-                </div>
-                <div class="doc-byline">
-                    {{ meta.byline }}
-                </div>
-                <div class="doc-injected">
-                    {{ article.html | safe }}
-                </div>
-            </div>
-            <div class="doc-footer">
-                <!-- Please consider not removing this -->
-                <img src="/attrib.svg" style="float: right;">
-                <!-- -->
+        <div class="side-links">
+          <a href="/">Main Page</a>
+          <a href="/index">Another link</a>
 
-                <p>
-                    This page was last modified <span data-date="{{ meta.lastModified }}">{{ meta.lastModified
-                        }}</span>. This is commit {{ meta.gitCommit }} built at <span
-                        data-date="{{ meta.buildTime }}">{{ meta.buildTime }}</span>.
-                </p>
+          <h3>Notice</h3>
+          <p>
+            To edit these links, run
+            <span style="white-space: nowrap">sgw clone theme default</span> and modify the
+            index.html, specifically at body.content-grid.grid-l.side-links
+          </p>
 
-                <p>You can include copyright and licensing information here. You can do so by running <span
-                        style="white-space: nowrap;">sgw clone theme default</span> and modifying the index.html,
-                    specifically at
-                    body.content-grid.grid-r.doc-footer</p>
-            </div>
+          <h3>Help</h3>
+          <a href="#">About</a>
+          <a href="#">Contact</a>
+          <a href="#">Donate</a>
         </div>
+      </div>
+      <div class="grid-r">
+        <div class="doc-links">
+          <a class="link selected" href="#"><span>Article</span></a>
+          <a class="link" href="#"><span>Source</span></a>
+          <div class="spacer"></div>
+        </div>
+        <div class="doc-body">
+          <div class="doc-title">{{ article.title }}</div>
+          <div class="doc-byline">{{ meta.byline }}</div>
+          <div class="doc-injected">{{ article.html | safe }}</div>
+        </div>
+        <div class="doc-footer">
+          <!-- Please consider not removing this -->
+          <img src="/attrib.svg" style="float: right" />
+          <!-- -->
+
+          <p>
+            This page was last modified
+            <span data-date="{{ meta.lastModified }}">{{ meta.lastModified }}</span>. This is commit
+            {{ meta.gitCommit }} built at
+            <span data-date="{{ meta.buildTime }}">{{ meta.buildTime }}</span>.
+          </p>
+
+          <p>
+            You can include copyright and licensing information here. You can do so by running
+            <span style="white-space: nowrap">sgw clone theme default</span> and modifying the
+            index.html, specifically at body.content-grid.grid-r.doc-footer
+          </p>
+        </div>
+      </div>
     </div>
 
     <script>
-        document.querySelectorAll("[data-date]").forEach(e => {
-            const date = new Date(e.dataset.date);
-            e.textContent = date.toLocaleString();
-        });
+      document.querySelectorAll("[data-date]").forEach((e) => {
+        const date = new Date(e.dataset.date);
+        e.textContent = date.toLocaleString();
+      });
     </script>
-</body>
-
+  </body>
 </html>

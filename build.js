@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 console.log("Compiling project with TypeScript compiler...");
 execSync("tsc", { stdio: "inherit" });
-console.log("TypeScript compiler finished.")
+console.log("TypeScript compiler finished.");
 
 function recurseCopy(src, dest) {
   fs.mkdirSync(dest, { recursive: true });

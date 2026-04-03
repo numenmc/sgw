@@ -25,5 +25,5 @@ export interface SGWConfig {
      * If this field is specified, the directory entered here will have its contents copied to the output directory's root.
      */
     staticFiles?: string;
-  }
+  };
 }

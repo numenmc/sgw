@@ -12,7 +12,8 @@ export class Theme {
   private template: string = "";
 
   public constructor(name: string, inputPath: string | null) {
-    if (["water", "default"].includes(name) || inputPath == null) this.path = path.join(__dirname, "themes", name);
+    if (["water", "default"].includes(name) || inputPath == null)
+      this.path = path.join(__dirname, "themes", name);
     else this.path = path.join(inputPath, name);
   }
 
@@ -37,7 +38,16 @@ export class Theme {
   }
 }
 
-export function renderHtml(theme: Theme, parsedAST: string, title: string, config: SGWConfig, buildDate: Date, originalFilePath: string, gitCommit?: string, lastModified?: Date) {
+export function renderHtml(
+  theme: Theme,
+  parsedAST: string,
+  title: string,
+  config: SGWConfig,
+  buildDate: Date,
+  originalFilePath: string,
+  gitCommit?: string,
+  lastModified?: Date
+) {
   return nunjucks.renderString(theme.getThemeTemplate(), {
     article: {
       html: parsedAST,

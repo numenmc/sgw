@@ -1,11 +1,14 @@
 # ssg-wiki
+
 Static site generated wiki software which uses a markup language similar to WikiText and Markdown.
 
 > [!WARNING]
 > Project is in very very very early development so nothing is stable.
 
 # Guide
+
 To create an SGW project, run these commands:
+
 ```bash
 npm install @numenmc/sgw
 npx sgw init docs # "docs" can be any directory name
@@ -26,6 +29,7 @@ npx sgw build -i ./docs -g . -o ./dist
 ```
 
 # SGW Markdown
+
 ```
 **Bold text**
 _Italic text_
@@ -57,6 +61,7 @@ If a template argument needs to use special characters, enclose the whole thing 
 ```
 
 # SGW Filesystem
+
 - A file named `Main Page.sgw` will render to "Main Page"
 - A nested file named `Nested/About.sgw` will render to "About"
 
@@ -65,6 +70,7 @@ If a template argument needs to use special characters, enclose the whole thing 
 - If there is a `Main Page.sgw-name` in the same directory as `Main Page.sgw` it will render to whatever is inside `Main Page.sgw-name`
 
 # SGW Templating
+
 - Templates belong in the `Template` directory. It should be marked as a namespace.
 - The code for a template goes into `Template/Template name.sgw.js` and exports a default function:
 
@@ -77,7 +83,7 @@ If a template argument needs to use special characters, enclose the whole thing 
  * @returns {Promise<string>|string} The rendered HTML
  */
 export default async function TemplateName(params, { safe, render }) {
-    return await render(params.text);
+  return await render(params.text);
 }
 ```
 
@@ -85,10 +91,12 @@ export default async function TemplateName(params, { safe, render }) {
 - Template documentation can be placed in `Template/Template name.sgw`
 
 # SGW Theming
+
 - You can set the `theme` property in your sgw.json config to a path (`./myTheme`) or the name of a built-in theme (`default`)
 - A theme consists of an `index.html` which renders every page. Other files are copied over
 
 ## SGW Theming - Templating Variables
+
 ```
 {{ article.html }} - Parsed article HTML
 {{ article.title }} - Article title
@@ -101,4 +109,5 @@ export default async function TemplateName(params, { safe, render }) {
 ```
 
 # SGW Searching
+
 The built wiki includes a search index `search.sgw.json`.
