@@ -8,7 +8,7 @@
     "build": "node ./build.js"
   },
   "bin": {
-    "sgw": "./dist/cli.js"
+    "sgw": "dist/cli.js"
   },
   "keywords": [],
   "author": "numenmc",
