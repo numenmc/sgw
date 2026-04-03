@@ -104,15 +104,18 @@ export default async function TemplateName(params, { safe, render }) {
 
 ```
 {{ article.html }} - Parsed article HTML
+{{ article.html_parts.before }} - HTML before the first heading
+{{ article.html_parts.after }} - HTML after the first heading, including the heading itself
 {{ article.title }} - Article title
+{{ article.fields }} - Fields inserted by templates
+{{ article.fields.sgw_table_of_contents }} - An array of { level: number; text: string; id: string; }
+
 {{ meta.byline }} - Byline set in config
 {{ meta.wikiName }} - Wiki name set in config
 {{ meta.buildTime }} - ISO8601 string at the time the wiki was built
 {{ meta.lastModified }} - Last modified ISO8601 string sourced from Git
 {{ meta.gitCommit }} - Current git commit sourced from Git
 {{ meta.filePath }} - Source path of the rendered file
-{{ article.fields }} - Fields inserted by templates
-{{ article.fields.sgw_table_of_contents }} - An array of { level: number; text: string; id: string; }
 ```
 
 # SGW Searching

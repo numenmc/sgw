@@ -52,6 +52,7 @@ export function renderHtml(
   return nunjucks.renderString(theme.getThemeTemplate(), {
     article: {
       html: parsedAST,
+      html_parts: splitAtFirstHeading(parsedAST),
       title,
       fields
     },
@@ -64,4 +65,16 @@ export function renderHtml(
       filePath: originalFilePath
     }
   });
+}
+
+function splitAtFirstHeading(html: string) {
+  const match = html.match(/<h[1-6]\b[^>]*>/i);
+  if (!match) return { before: html, after: "" };
+
+  const idx = match.index;
+
+  return {
+    before: html.slice(0, idx),
+    after: html.slice(idx)
+  };
 }
