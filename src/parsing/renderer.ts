@@ -5,22 +5,26 @@ import { ASTNodeType, type ASTNode } from "./parsing.types.js";
 import { safeFilename } from "../build.js";
 import type { SGWConfig } from "../config.types.js";
 import { pathToFileURL } from "node:url";
+import { parseTokens } from "./parser.js";
+import { tokenizeInput } from "./tokenizer.js";
 
 export async function toHtml(
   node: ASTNode,
   dirInput: string,
   config: SGWConfig,
-  linkMap: Record<string, string>
+  linkMap: Record<string, string>,
+  encase: boolean = true
 ): Promise<string> {
   switch (node.type) {
     case ASTNodeType.Document: {
-      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
+      const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap, encase)));
       return children.join("");
     }
 
     case ASTNodeType.Paragraph: {
       const children = await Promise.all(node.children.map((a) => toHtml(a, dirInput, config, linkMap)));
-      return children.length > 0 ? `<p>${children.join("")}</p>` : "";
+      if (encase) return children.length > 0 ? `<p>${children.join("")}</p>` : "";
+      else return children.join("");
     }
 
     case ASTNodeType.Header: {
@@ -62,13 +66,15 @@ export async function toHtml(
       return escapeHtml(node.value);
 
     case ASTNodeType.Template:
-      return await renderTemplate(dirInput, node.name, node.args);
+      return await renderTemplate(dirInput, node.name, config, linkMap, node.args);
   }
 }
 
 async function renderTemplate(
   dirInput: string,
   templateName: string,
+  config: SGWConfig,
+  linkMap: Record<string, string>,
   args: string[]
 ): Promise<string> {
   const templatePath = path.join(dirInput, "Template", `${templateName}.sgw.js`);
@@ -94,7 +100,12 @@ async function renderTemplate(
     const url = pathToFileURL(templatePath).href;
     const mod = await import(`${url}?v=${Date.now()}`);
 
-    return await mod.default(params, { safe: escapeHtml });
+    return await mod.default(params, {
+      safe: escapeHtml,
+      render: async (x: string, encase: boolean = false) => {
+        return await toHtml(parseTokens(tokenizeInput(x)), dirInput, config, linkMap, encase);
+      }
+    });
   } catch (err) {
     return `<span class="sgw-unknown-template">${escapeHtml(String(err))}</span>`;
   }

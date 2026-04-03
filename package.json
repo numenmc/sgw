@@ -22,6 +22,7 @@
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^1.0.1",
     "@types/express": "^5.0.6",
+    "@types/html-to-text": "^9.0.4",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^25.3.5",
     "@types/nunjucks": "^3.2.6",
@@ -38,6 +39,8 @@
     "commander": "^14.0.3",
     "dompurify": "^3.3.3",
     "express": "^5.2.1",
+    "html-to-text": "^9.0.5",
+    "isomorphic-git": "^1.37.4",
     "jsdom": "^29.0.1",
     "nunjucks": "^3.2.4"
   }

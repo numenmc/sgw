@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import fsRaw from "node:fs";
 import path from "node:path";
 import { tokenizeInput } from "./parsing/tokenizer.js";
 import { parseTokens } from "./parsing/parser.js";
@@ -8,61 +9,15 @@ import type { SGWConfig } from "./config.types.js";
 import { JSDOM } from "jsdom";
 import createDOMPurify from "dompurify";
 import type { BuildResult } from "./build.types.js";
+import * as git from "isomorphic-git";
+import type { PageIndex } from "./search.types.js";
+import { convert } from "html-to-text";
 
-// export async function build(input: string, output: string) {
-//   // steps to builkd
-//   // 1. create page structures (flatten directories etc.)
-//   // 2. render each ast to html
-//   // 3. Update links to correct pathes
-//   // 4. Insert into Nunjucks renderer
-
-//   const startTime = new Date();
-
-//   const window = new JSDOM("").window;
-//   const DOMPurify = createDOMPurify(window);
-
-//   const config: SGWConfig = JSON.parse((await fs.readFile(path.join(input, "./sgw.json"), "utf-8")).toString());
-
-//   let theme: Theme;
-
-//   const result: BuildResult = {};
-
-//   try {
-//     theme = new Theme(config.build.theme);
-//     await theme.loadTheme();
-//     console.log(`Loaded the theme ${config.build.theme}`);
-//   } catch { throw new Error("Theme didn't load. Is the selected theme valid and not missing?"); }
-
-//   if (await fileExists(output)) {
-//     await fs.rm(output, { recursive: true, force: true });
-//   }
-
-//   await fs.mkdir(output);
-
-//   if (config.build.staticFiles) {
-//     console.log("Copying static files...");
-//     await recurseCopy(path.join(input, config.build.staticFiles), output);
-//   }
-
-//   for (const [n, c] of Object.entries(theme.getCopyList())) {
-//     await fs.writeFile(path.join(output, n), c);
-//   }
-
-//   const pages: Record<string, string> = await createPageStructure(input);
-
-//   for (const [pageName, pagePath] of Object.entries(pages)) {
-//     const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
-//     const tokens = tokenizeInput(pageContents);
-//     const ast = parseTokens(tokens);
-//     const html = DOMPurify.sanitize(await toHtml(ast, input, config, pages));
-
-//     const rendered = renderHtml(theme, html, pageName, config, startTime);
-//     const isIndex = pageName == config.build.index;
-//     await fs.writeFile(path.join(output, (isIndex ? "index" : safeFilename(pageName)) + ".html"), rendered);
-//   }
-// }
-
-export async function build(input: string, disableLogging?: boolean): Promise<BuildResult> {
+export async function build(
+  gitRoot: string | null,
+  input: string,
+  disableLogging?: boolean
+): Promise<BuildResult> {
   // steps to builkd
   // 1. create page structures (flatten directories etc.)
   // 2. render each ast to html
@@ -71,23 +26,45 @@ export async function build(input: string, disableLogging?: boolean): Promise<Bu
 
   const startTime = new Date();
 
+  let gitCommit: string | null = null;
+  if (gitRoot) {
+    try {
+      gitCommit = (
+        await git.resolveRef({
+          fs: fsRaw,
+          dir: gitRoot,
+          ref: "HEAD"
+        })
+      ).slice(0, 7);
+    } catch {}
+  }
+
+  if (!disableLogging) console.log(`Git root is ${gitRoot}`);
+
   const window = new JSDOM("").window;
   const DOMPurify = createDOMPurify(window);
 
-  const config: SGWConfig = JSON.parse((await fs.readFile(path.join(input, "./sgw.json"), "utf-8")).toString());
+  const config: SGWConfig = JSON.parse(
+    (await fs.readFile(path.join(input, "./sgw.json"), "utf-8")).toString()
+  );
 
   let theme: Theme;
 
   const result: BuildResult = {};
+  const searchIndex: PageIndex[] = [];
 
   try {
-    theme = new Theme(config.build.theme);
+    theme = new Theme(config.build.theme, input);
     await theme.loadTheme();
     if (!disableLogging) console.log(`Loaded the theme ${config.build.theme}`);
-  } catch { throw new Error("Theme didn't load. Is the selected theme valid and not missing?"); }
+  } catch {
+    throw new Error("Theme didn't load. Is the selected theme valid and not missing?");
+  }
 
   if (config.build.staticFiles) {
-    for (const [k, v] of Object.entries(await recurseCollect(path.join(input, config.build.staticFiles)))) {
+    for (const [k, v] of Object.entries(
+      await recurseCollect(path.join(input, config.build.staticFiles))
+    )) {
       result[path.join(".", k)] = v;
     }
   }
@@ -104,10 +81,32 @@ export async function build(input: string, disableLogging?: boolean): Promise<Bu
     const ast = parseTokens(tokens);
     const html = DOMPurify.sanitize(await toHtml(ast, input, config, pages));
 
-    const rendered = renderHtml(theme, html, pageName, config, startTime);
     const isIndex = pageName == config.build.index;
-    result[path.join(".", (isIndex ? "index" : safeFilename(pageName)) + ".html")] = rendered;
+    const outputPath = path.join(".", (isIndex ? "index" : safeFilename(pageName)) + ".html");
+
+    searchIndex.push({
+      title: pageName,
+      path: outputPath,
+      content: pageName.startsWith("Template:") ? "" : convert(html, { wordwrap: 130 })
+    });
+
+    const rendered = renderHtml(
+      theme,
+      html,
+      pageName,
+      config,
+      startTime,
+      fixFilepath(path.relative(input, pagePath)),
+      gitCommit || undefined,
+      gitRoot
+        ? (await getLastModified(gitRoot, path.relative(gitRoot, pagePath))) || undefined
+        : undefined
+    );
+    
+    result[outputPath] = rendered;
   }
+
+  result["search.sgw.json"] = JSON.stringify(searchIndex, null, 4);
 
   return result;
 }
@@ -133,22 +132,37 @@ async function createPageStructure(dir: string, topLevel = true) {
         pages[isNamespace ? `${name1}:${k}` : k] = v;
       }
     } else if (name1.endsWith(".sgw")) {
-      const zz = pages[name1.slice(0, -4)];
+      const baseName = name1.slice(0, -4);
+
+      const nameFile = path.join(dir, `${baseName}.sgw-name`);
+
+      let title = baseName;
+
+      if (await fileExists(nameFile)) {
+        const content = (await fs.readFile(nameFile, "utf-8"))
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .join(" ");
+        if (content.trim()) {
+          title = content;
+        }
+      }
+
+      const zz = pages[title];
+
       if (zz) {
         throw new Error(`Duplicate page titles: "${path.join(dir, name1)}" and "${zz}"`);
       }
 
-      pages[name1.slice(0, -4)] = path.join(dir, name1);
+      pages[title] = path.join(dir, name1);
     }
   }
 
   return pages;
 }
 
-async function recurseCollect(
-  source: string,
-  basePath = ""
-): Promise<Record<string, Uint8Array>> {
+async function recurseCollect(source: string, basePath = ""): Promise<Record<string, Uint8Array>> {
   const result: Record<string, Uint8Array> = {};
 
   const stats = await fs.stat(source);
@@ -183,4 +197,24 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 export function safeFilename(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function fixFilepath(filepath: string) {
+  return filepath.split(path.sep).join("/");
+}
+
+async function getLastModified(dir: string, filepath: string) {
+  const commits = await git.log({
+    fs: fsRaw,
+    dir,
+    filepath: fixFilepath(filepath),
+    depth: 1
+  });
+
+  if (!commits.length) return null;
+
+  const commit = commits[0];
+
+  if (commit) return new Date(commit.commit.committer.timestamp * 1000);
+  else return undefined;
 }

@@ -11,8 +11,9 @@ export class Theme {
   private copyFiles: Record<string, Buffer> = {};
   private template: string = "";
 
-  public constructor(name: string) {
-    this.path = path.join(__dirname, "themes", name);
+  public constructor(name: string, inputPath: string | null) {
+    if (["water", "default"].includes(name) || inputPath == null) this.path = path.join(__dirname, "themes", name);
+    else this.path = path.join(inputPath, name);
   }
 
   public async loadTheme() {
@@ -36,7 +37,7 @@ export class Theme {
   }
 }
 
-export function renderHtml(theme: Theme, parsedAST: string, title: string, config: SGWConfig, buildDate: Date) {
+export function renderHtml(theme: Theme, parsedAST: string, title: string, config: SGWConfig, buildDate: Date, originalFilePath: string, gitCommit?: string, lastModified?: Date) {
   return nunjucks.renderString(theme.getThemeTemplate(), {
     article: {
       html: parsedAST,
@@ -46,8 +47,9 @@ export function renderHtml(theme: Theme, parsedAST: string, title: string, confi
       byline: config.meta.byline,
       wikiName: config.meta.name,
       buildTime: buildDate,
-      lastModified: new Date().toISOString(),
-      gitCommit: process.env.COMMIT || "[unknown]"
+      lastModified: lastModified ? lastModified.toISOString() : undefined,
+      gitCommit: gitCommit || undefined,
+      filePath: originalFilePath
     }
   });
 }

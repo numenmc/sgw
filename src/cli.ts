@@ -33,14 +33,15 @@ program
   .command("dev")
   .description("Start local development server")
   .option("-i, --input <input>", "source directory to use")
+  .option("-g, --gitroot <gitroot>", "git working directory to use")
   .option("-p, --port <port>", "port to listen on", "7616")
-  .option("-e, --expose", "expose to network")
   .action(async (opts, cmd) => {
     if (!opts.input) cmd.error("Property input (-i) not specified.");
     const inLocation = path.resolve(process.cwd(), opts.input as string);
+    const gitRoot = typeof opts.gitroot == "string" ? path.resolve(process.cwd(), opts.gitroot) : null;
 
     console.log(`Starting dev server on port ${opts.port}...`);
-    let currentBuild: BuildResult = await build(inLocation);
+    let currentBuild: BuildResult = await build(gitRoot, inLocation);
 
     let building = false;
 
@@ -49,7 +50,7 @@ program
 
       building = true;
       try {
-        currentBuild = await build(inLocation, true);
+        currentBuild = await build(gitRoot, inLocation, true);
       } finally {
         building = false;
       }
@@ -76,16 +77,18 @@ program
   .command("build")
   .description("Build to directory")
   .option("-i, --input <input>", "source directory to use")
+  .option("-g, --gitroot <gitroot>", "git working directory to use")
   .option("-o, --output <output>", "directory to output to", "sgwdist")
   .action(async (opts, cmd) => {
     if (!opts.input) cmd.error("Property input (-i) not specified.");
 
     const inLocation = path.resolve(process.cwd(), opts.input as string);
     const outLocation = path.resolve(process.cwd(), opts.output as string);
+    const gitRoot = typeof opts.gitroot == "string" ? path.resolve(process.cwd(), opts.gitroot) : null;
 
     console.log(`Building to ${outLocation}`);
 
-    const result = await build(inLocation);
+    const result = await build(gitRoot, inLocation);
 
     for (const [file, content] of Object.entries(result)) {
       const outPath = path.join(outLocation, file);
@@ -106,7 +109,7 @@ clone
     let theme: Theme;
 
     try {
-      theme = new Theme(name);
+      theme = new Theme(name, null);
       await theme.loadTheme();
       console.log(`Loaded the theme ${name}`);
     } catch {
