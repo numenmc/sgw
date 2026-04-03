@@ -52,6 +52,8 @@ program
       building = true;
       try {
         currentBuild = await build(gitRoot, inLocation, true);
+      } catch(err) {
+        console.log("Failed build: ", (err as Error).message);
       } finally {
         building = false;
       }

@@ -45,13 +45,15 @@ export function renderHtml(
   config: SGWConfig,
   buildDate: Date,
   originalFilePath: string,
+  fields: object,
   gitCommit?: string,
-  lastModified?: Date
+  lastModified?: Date,
 ) {
   return nunjucks.renderString(theme.getThemeTemplate(), {
     article: {
       html: parsedAST,
-      title
+      title,
+      fields
     },
     meta: {
       byline: config.meta.byline,

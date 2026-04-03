@@ -79,7 +79,9 @@ export async function build(
     const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
     const tokens = tokenizeInput(pageContents);
     const ast = parseTokens(tokens);
-    const html = DOMPurify.sanitize(await toHtml(ast, input, config, pages));
+
+    const fields = {};
+    const html = DOMPurify.sanitize(await toHtml(ast, input, config, pages, fields));
 
     const isIndex = pageName == config.build.index;
     const outputPath = path.join(".", (isIndex ? "index" : safeFilename(pageName)) + ".html");
@@ -87,7 +89,7 @@ export async function build(
     searchIndex.push({
       title: pageName,
       path: outputPath,
-      content: pageName.startsWith("Template:") ? "" : convert(html, { wordwrap: 130 })
+      content: pageName.startsWith("Template:") ? "" : convert(html, { preserveNewlines: false })
     });
 
     const rendered = renderHtml(
@@ -97,6 +99,7 @@ export async function build(
       config,
       startTime,
       fixFilepath(path.relative(input, pagePath)),
+      fields,
       gitCommit || undefined,
       gitRoot
         ? (await getLastModified(gitRoot, path.relative(gitRoot, pagePath))) || undefined

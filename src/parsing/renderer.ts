@@ -13,42 +13,67 @@ export async function toHtml(
   dirInput: string,
   config: SGWConfig,
   linkMap: Record<string, string>,
+  fields: object,
   encase: boolean = true
 ): Promise<string> {
   switch (node.type) {
     case ASTNodeType.Document: {
-      const children = await Promise.all(
-        node.children.map((a) => toHtml(a, dirInput, config, linkMap, encase))
-      );
+      const children = [];
+
+      for (const a of node.children) {
+        children.push(await toHtml(a, dirInput, config, linkMap, fields, encase));
+      }
+
       return children.join("");
     }
 
     case ASTNodeType.Paragraph: {
-      const children = await Promise.all(
-        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
-      );
+      const children = [];
+
+      for (const a of node.children) {
+        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+      }
+
       if (encase) return children.length > 0 ? `<p>${children.join("")}</p>` : "";
       else return children.join("");
     }
 
     case ASTNodeType.Header: {
-      const children = await Promise.all(
-        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
-      );
-      return `<h${node.level} id="${createHeaderId(children.join(""))}">${children.join("")}</h${node.level}>`;
+      const children = [];
+
+      for (const a of node.children) {
+        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+      }
+
+      const text = children.join("");
+      const id = createHeaderId(text);
+
+      pushField(fields, "sgw_table_of_contents", {
+        level: node.level - 2,
+        text,
+        id
+      });
+
+      return `<h${node.level} id="${id}">${text}</h${node.level}>`;
     }
 
     case ASTNodeType.Bold: {
-      const children = await Promise.all(
-        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
-      );
+      const children = [];
+
+      for (const a of node.children) {
+        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+      }
+
       return `<strong>${children.join("")}</strong>`;
     }
 
     case ASTNodeType.Italic: {
-      const children = await Promise.all(
-        node.children.map((a) => toHtml(a, dirInput, config, linkMap))
-      );
+      const children = [];
+
+      for (const a of node.children) {
+        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+      }
+
       return `<em>${children.join("")}</em>`;
     }
 
@@ -76,7 +101,7 @@ export async function toHtml(
       return escapeHtml(node.value);
 
     case ASTNodeType.Template:
-      return await renderTemplate(dirInput, node.name, config, linkMap, node.args);
+      return await renderTemplate(dirInput, node.name, config, linkMap, node.args, fields);
   }
 }
 
@@ -85,7 +110,8 @@ async function renderTemplate(
   templateName: string,
   config: SGWConfig,
   linkMap: Record<string, string>,
-  args: string[]
+  args: string[],
+  fields: object
 ): Promise<string> {
   const templatePath = path.join(dirInput, "Template", `${templateName}.sgw.js`);
   if (!(await fileExists(templatePath)))
@@ -113,8 +139,18 @@ async function renderTemplate(
     return await mod.default(params, {
       safe: escapeHtml,
       render: async (x: string, encase: boolean = false) => {
-        return await toHtml(parseTokens(tokenizeInput(x)), dirInput, config, linkMap, encase);
-      }
+        return await toHtml(
+          parseTokens(tokenizeInput(x)),
+          dirInput,
+          config,
+          linkMap,
+          fields,
+          encase
+        );
+      },
+      getField: (path: string) => getField(fields, path),
+      setField: (path: string, value: any) => setField(fields, path, value),
+      pushField: (path: string, value: any) => pushField(fields, path, value)
     });
   } catch (err) {
     return `<span class="sgw-unknown-template">${escapeHtml(String(err))}</span>`;
@@ -142,4 +178,50 @@ export function createHeaderId(text: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function getField(fields: any, path: string): any | undefined {
+  const parts = path.split(".");
+  let current = fields;
+
+  for (const part of parts) {
+    if (current == null || typeof current !== "object") {
+      return undefined;
+    }
+    current = current[part];
+  }
+
+  return current;
+}
+
+function setField(fields: any, path: string, value: any): void {
+  const parts = path.split(".");
+  let current = fields;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i]!;
+
+    if (current[part] == null) {
+      current[part] = {};
+    } else if (typeof current[part] !== "object") {
+      throw new Error(`setField: "${parts.slice(0, i + 1).join(".")}" is not an object`);
+    }
+
+    current = current[part];
+  }
+
+  current[parts.at(-1)!] = value;
+}
+
+function pushField(fields: any, path: string, value: any): void {
+  let list = getField(fields, path);
+
+  if (list === undefined) {
+    list = [];
+  } else if (!Array.isArray(list)) {
+    throw new Error(`pushField: "${path}" is not an array`);
+  }
+
+  list.push(value);
+  setField(fields, path, list);
 }

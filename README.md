@@ -78,8 +78,13 @@ If a template argument needs to use special characters, enclose the whole thing 
 /**
  * @param {Record<string, string>} params Parameters passed into the template
  * @param {Object} context Utility functions
+ * 
  * @param {(text: string) => string} context.safe Escapes HTML tags
  * @param {(x: string, encase?: boolean) => Promise<string>} context.render Renders SGW Markdown to HTML. When "encase" is true it will be rendered into a <p>
+ * @param {(path: string, value: any) => void} context.setField Set a custom field that can be rendered by the theme. Fields are shared by all templates and are executed in page order.
+ * @param {(path: string) => any>} context.getField Get a custom field that can be rendered by the theme
+ * @param {(path: string, value: any) => void} context.pushField A helper to get the field and push a value to it
+ * 
  * @returns {Promise<string>|string} The rendered HTML
  */
 export default async function TemplateName(params, { safe, render }) {
@@ -106,6 +111,8 @@ export default async function TemplateName(params, { safe, render }) {
 {{ meta.lastModified }} - Last modified ISO8601 string sourced from Git
 {{ meta.gitCommit }} - Current git commit sourced from Git
 {{ meta.filePath }} - Source path of the rendered file
+{{ article.fields }} - Fields inserted by templates
+{{ article.fields.sgw_table_of_contents }} - An array of { level: number; text: string; id: string; }
 ```
 
 # SGW Searching
