@@ -81,7 +81,9 @@ export async function build(
     const ast = parseTokens(tokens);
 
     const fields = {};
-    const html = DOMPurify.sanitize(await toHtml(ast, input, config, pages, fields));
+    const html = config.build.noDOMPurify
+      ? await toHtml(ast, input, config, pages, fields)
+      : DOMPurify.sanitize(await toHtml(ast, input, config, pages, fields));
 
     const isIndex = pageName == config.build.index;
     const outputPath = path.join(".", (isIndex ? "index" : safeFilename(pageName)) + ".html");
