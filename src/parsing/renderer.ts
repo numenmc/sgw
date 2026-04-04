@@ -86,7 +86,7 @@ export async function toHtml(
       const label = node.text.trim() == "" ? target : node.text;
 
       if (href && isExternal) {
-        return `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+        return `<a class="sgw-external-link" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
       }
 
       if (href && !isExternal) {
