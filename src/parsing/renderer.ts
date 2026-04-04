@@ -14,6 +14,8 @@ export async function toHtml(
   config: SGWConfig,
   linkMap: Record<string, string>,
   fields: object,
+  templates: Record<string, string>,
+  stripLinks: boolean,
   encase: boolean = true
 ): Promise<string> {
   switch (node.type) {
@@ -21,7 +23,7 @@ export async function toHtml(
       const children = [];
 
       for (const a of node.children) {
-        children.push(await toHtml(a, dirInput, config, linkMap, fields, encase));
+        children.push(await toHtml(a, dirInput, config, linkMap, fields, templates, stripLinks, encase));
       }
 
       return children.join("");
@@ -31,7 +33,7 @@ export async function toHtml(
       const children = [];
 
       for (const a of node.children) {
-        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+        children.push(await toHtml(a, dirInput, config, linkMap, fields, templates, stripLinks));
       }
 
       if (encase) return children.length > 0 ? `<p>${children.join("")}</p>` : "";
@@ -42,7 +44,7 @@ export async function toHtml(
       const children = [];
 
       for (const a of node.children) {
-        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+        children.push(await toHtml(a, dirInput, config, linkMap, fields, templates, stripLinks));
       }
 
       const text = children.join("");
@@ -61,7 +63,7 @@ export async function toHtml(
       const children = [];
 
       for (const a of node.children) {
-        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+        children.push(await toHtml(a, dirInput, config, linkMap, fields, templates, stripLinks));
       }
 
       return `<strong>${children.join("")}</strong>`;
@@ -71,7 +73,7 @@ export async function toHtml(
       const children = [];
 
       for (const a of node.children) {
-        children.push(await toHtml(a, dirInput, config, linkMap, fields));
+        children.push(await toHtml(a, dirInput, config, linkMap, fields, templates, stripLinks));
       }
 
       return `<em>${children.join("")}</em>`;
@@ -91,7 +93,7 @@ export async function toHtml(
 
       if (href && !isExternal) {
         const isIndex = target == config.build.index;
-        return `<a href="${escapeHtml(isIndex ? "index" : safeFilename(target))}.html">${escapeHtml(label)}</a>`;
+        return `<a href="${escapeHtml(isIndex ? "index" : `/w/${safeFilename(target)}`)}${stripLinks ? "" : ".html"}">${escapeHtml(label)}</a>`;
       }
 
       return `<span class="sgw-unknown-link">${escapeHtml(label)}</span>`;
@@ -101,7 +103,7 @@ export async function toHtml(
       return escapeHtml(node.value);
 
     case ASTNodeType.Template:
-      return await renderTemplate(dirInput, node.name, config, linkMap, node.args, fields);
+      return await renderTemplate(dirInput, node.name, config, linkMap, node.args, fields, stripLinks, templates);
   }
 }
 
@@ -111,10 +113,13 @@ async function renderTemplate(
   config: SGWConfig,
   linkMap: Record<string, string>,
   args: string[],
-  fields: object
+  fields: object,
+  stripLinks: boolean,
+  templates: Record<string, string>
 ): Promise<string> {
-  const templatePath = path.join(dirInput, "Template", `${templateName}.sgw.js`);
-  if (!(await fileExists(templatePath)))
+  const templatePath = templates[templateName];
+
+  if (!templatePath || !(await fileExists(templatePath)))
     return `<span class="sgw-unknown-template">Unknown template "${escapeHtml(templateName)}"</span>`;
 
   const params = Object.fromEntries(
@@ -145,6 +150,8 @@ async function renderTemplate(
           config,
           linkMap,
           fields,
+          templates,
+          stripLinks,
           encase
         );
       },

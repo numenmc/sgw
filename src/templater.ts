@@ -44,7 +44,7 @@ export function renderHtml(
   title: string,
   config: SGWConfig,
   buildDate: Date,
-  originalFilePath: string,
+  originalFilePath: string | null,
   fields: object,
   gitCommit?: string,
   lastModified?: Date,

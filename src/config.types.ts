@@ -30,5 +30,10 @@ export interface SGWConfig {
      * Should DOMPurify be disabled? Defualt to false
      */
     noDOMPurify?: boolean;
+
+    /**
+     * Should the renderer remove the .html from links? This is useful if your hosting allows fetching without a extension and you want clean links.
+     */
+    stripLinkExtension?: boolean;
   };
 }

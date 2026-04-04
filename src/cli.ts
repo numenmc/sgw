@@ -64,6 +64,7 @@ program
       let p = req.path;
 
       if (p == "/") p = "/index.html";
+      if (!path.extname(p)) p = `${p}.html`;
       const f = currentBuild[path.join(".", p)];
       if (f) {
         res.type(path.extname(p));

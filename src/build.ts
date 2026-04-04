@@ -3,7 +3,7 @@ import fsRaw from "node:fs";
 import path from "node:path";
 import { tokenizeInput } from "./parsing/tokenizer.js";
 import { parseTokens } from "./parsing/parser.js";
-import { toHtml } from "./parsing/renderer.js";
+import { escapeHtml, toHtml } from "./parsing/renderer.js";
 import { renderHtml, Theme } from "./templater.js";
 import type { SGWConfig } from "./config.types.js";
 import { JSDOM } from "jsdom";
@@ -74,6 +74,7 @@ export async function build(
   }
 
   const pages: Record<string, string> = await createPageStructure(input);
+  const templates: Record<string, string> = await scanTemplates(input);
 
   for (const [pageName, pagePath] of Object.entries(pages)) {
     const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
@@ -82,11 +83,32 @@ export async function build(
 
     const fields = {};
     const html = config.build.noDOMPurify
-      ? await toHtml(ast, input, config, pages, fields)
-      : DOMPurify.sanitize(await toHtml(ast, input, config, pages, fields));
+      ? await toHtml(
+          ast,
+          input,
+          config,
+          pages,
+          fields,
+          templates,
+          config.build.stripLinkExtension == true
+        )
+      : DOMPurify.sanitize(
+          await toHtml(
+            ast,
+            input,
+            config,
+            pages,
+            fields,
+            templates,
+            config.build.stripLinkExtension == true
+          )
+        );
 
     const isIndex = pageName == config.build.index;
-    const outputPath = path.join(".", (isIndex ? "index" : safeFilename(pageName)) + ".html");
+    const outputPath = path.join(
+      ".",
+      (isIndex ? "index" : `${pageName == "404" ? "" : "w/"}${safeFilename(pageName)}`) + ".html"
+    );
 
     searchIndex.push({
       title: pageName,
@@ -116,29 +138,47 @@ export async function build(
   return result;
 }
 
-async function createPageStructure(dir: string, topLevel = true) {
-  // Stores "Page title": "/path/to/Page"
+async function createPageStructure(
+  dir: string,
+  currentNamespace = ""
+): Promise<Record<string, string>> {
   const pages: Record<string, string> = {};
 
-  // check all files in current dir
-  for (const name1 of await fs.readdir(dir)) {
-    const stats = await fs.stat(path.join(dir, name1));
+  const entries = await fs.readdir(dir);
 
-    // if it's a directory still put it at root unless it has a namespace
+  const hasNamespace = await fileExists(path.join(dir, ".sgw-namespace"));
+  const localNamespace = hasNamespace
+    ? path.basename(dir)
+    : currentNamespace;
+
+  const namespacePrefix =
+    currentNamespace && localNamespace && hasNamespace
+      ? `${currentNamespace}:${localNamespace}`
+      : localNamespace || currentNamespace;
+
+  for (const name1 of entries) {
+    const fullPath = path.join(dir, name1);
+    const stats = await fs.stat(fullPath);
+
     if (stats.isDirectory()) {
-      const isNamespace = topLevel && (await fileExists(path.join(dir, name1, ".sgw-namespace")));
-      const pages1 = await createPageStructure(path.join(dir, name1), false);
+      const pages1 = await createPageStructure(fullPath, namespacePrefix);
+
       for (const [k, v] of Object.entries(pages1)) {
-        const zz = pages[isNamespace ? `${name1}:${k}` : k];
-        if (zz) {
-          throw new Error(`Duplicate page titles: "${path.join(dir, name1, k)}.sgw" and "${zz}"`);
+        const finalKey = namespacePrefix && !k.includes(":")
+          ? `${namespacePrefix}:${k}`
+          : k;
+
+        const existing = pages[finalKey];
+        if (existing) {
+          throw new Error(
+            `Duplicate page titles: "${v}" and "${existing}"`
+          );
         }
 
-        pages[isNamespace ? `${name1}:${k}` : k] = v;
+        pages[finalKey] = v;
       }
     } else if (name1.endsWith(".sgw")) {
       const baseName = name1.slice(0, -4);
-
       const nameFile = path.join(dir, `${baseName}.sgw-name`);
 
       let title = baseName;
@@ -149,22 +189,56 @@ async function createPageStructure(dir: string, topLevel = true) {
           .map((l) => l.trim())
           .filter(Boolean)
           .join(" ");
+
         if (content.trim()) {
           title = content;
         }
       }
 
-      const zz = pages[title];
+      const finalKey = namespacePrefix ? `${namespacePrefix}:${title}` : title;
 
-      if (zz) {
-        throw new Error(`Duplicate page titles: "${path.join(dir, name1)}" and "${zz}"`);
+      const existing = pages[finalKey];
+      if (existing) {
+        throw new Error(
+          `Duplicate page titles: "${fullPath}" and "${existing}"`
+        );
       }
 
-      pages[title] = path.join(dir, name1);
+      pages[finalKey] = fullPath;
     }
   }
 
   return pages;
+}
+
+async function scanTemplates(dir: string): Promise<Record<string, string>> {
+  const templates: Record<string, string> = {};
+
+  async function walk(currentDir: string) {
+    for (const name of await fs.readdir(currentDir)) {
+      const fullPath = path.join(currentDir, name);
+      const stats = await fs.stat(fullPath);
+
+      if (stats.isDirectory()) {
+        await walk(fullPath);
+      } else if (name.endsWith(".sgw.js")) {
+        const baseName = name.slice(0, -7);
+
+        if (templates[baseName]) {
+          throw new Error(`Duplicate template name: "${baseName}"`);
+        }
+
+        templates[baseName] = fullPath;
+      }
+    }
+  }
+
+  const rootTemplateDir = dir;
+  if (await fileExists(rootTemplateDir)) {
+    await walk(rootTemplateDir);
+  }
+
+  return templates;
 }
 
 async function recurseCollect(source: string, basePath = ""): Promise<Record<string, Uint8Array>> {
@@ -209,17 +283,19 @@ function fixFilepath(filepath: string) {
 }
 
 async function getLastModified(dir: string, filepath: string) {
-  const commits = await git.log({
-    fs: fsRaw,
-    dir,
-    filepath: fixFilepath(filepath),
-    depth: 1
-  });
+  try {
+    const commits = await git.log({
+      fs: fsRaw,
+      dir,
+      filepath: fixFilepath(filepath),
+      depth: 1
+    });
 
-  if (!commits.length) return null;
+    if (!commits.length) return null;
 
-  const commit = commits[0];
+    const commit = commits[0];
 
-  if (commit) return new Date(commit.commit.committer.timestamp * 1000);
-  else return undefined;
+    if (commit) return new Date(commit.commit.committer.timestamp * 1000);
+    else return undefined;
+  } catch {}
 }
