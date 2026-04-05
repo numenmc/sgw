@@ -36,4 +36,6 @@ export interface SGWConfig {
      */
     stripLinkExtension?: boolean;
   };
+  plugins?: string[];
+  opts?: Record<string, any>;
 }

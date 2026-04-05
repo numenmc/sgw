@@ -8,20 +8,21 @@ import { renderHtml, Theme } from "./templater.js";
 import type { SGWConfig } from "./config.types.js";
 import { JSDOM } from "jsdom";
 import createDOMPurify from "dompurify";
-import type { BuildResult } from "./build.types.js";
+import type { BuildResult, PageContext, SGWPlugin } from "./build.types.js";
 import * as git from "isomorphic-git";
 import type { PageIndex } from "./search.types.js";
 import { convert } from "html-to-text";
+import { pathToFileURL } from "node:url";
 
 export async function build(
   gitRoot: string | null,
   input: string,
   disableLogging?: boolean
 ): Promise<BuildResult> {
-  // steps to builkd
+  // steps to build
   // 1. create page structures (flatten directories etc.)
   // 2. render each ast to html
-  // 3. Update links to correct pathes
+  // 3. Update links to correct paths
   // 4. Insert into Nunjucks renderer
 
   const startTime = new Date();
@@ -36,10 +37,10 @@ export async function build(
           ref: "HEAD"
         })
       ).slice(0, 7);
-    } catch {}
+    } catch { }
   }
 
-  if (!disableLogging) console.log(`Git root is ${gitRoot}`);
+  if (!disableLogging) console.log(`Git root is ${gitRoot ?? "not set"}`);
 
   const window = new JSDOM("").window;
   const DOMPurify = createDOMPurify(window);
@@ -47,6 +48,14 @@ export async function build(
   const config: SGWConfig = JSON.parse(
     (await fs.readFile(path.join(input, "./sgw.json"), "utf-8")).toString()
   );
+
+  const plugins: SGWPlugin[] = await Promise.all((config.plugins || []).map(async (plugin) => {
+    const url = pathToFileURL(path.join(input, plugin)).href;
+    const mod = await import(`${url}?v=${Date.now()}`);
+    return mod.default;
+  }));
+
+  await runHook(plugins, "onConfigLoad", config);
 
   let theme: Theme;
 
@@ -75,11 +84,27 @@ export async function build(
 
   const pages: Record<string, string> = await createPageStructure(input);
   const templates: Record<string, string> = await scanTemplates(input);
+  await runHook(plugins, "onPageStructure", pages);
 
   for (const [pageName, pagePath] of Object.entries(pages)) {
+    const outputPath = path.join(
+      ".",
+      (pageName == config.build.index ? "index" : safeFilename(pageName)) + ".html"
+    );
+
+    const context: PageContext = {
+      pageName,
+      pagePath,
+      outputPath,
+      config,
+      fields: {}
+    };
+    
     const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
     const tokens = tokenizeInput(pageContents);
+    await runHook(plugins, "onTokens", tokens, context);
     const ast = parseTokens(tokens);
+    await runHook(plugins, "onAST", ast, context);
 
     const fields = {};
     const html = config.build.noDOMPurify
@@ -104,12 +129,6 @@ export async function build(
           )
         );
 
-    const isIndex = pageName == config.build.index;
-    const outputPath = path.join(
-      ".",
-      (isIndex ? "index" : `${pageName == "404" ? "" : "w/"}${safeFilename(pageName)}`) + ".html"
-    );
-
     searchIndex.push({
       title: pageName,
       path: outputPath,
@@ -130,11 +149,14 @@ export async function build(
         : undefined
     );
 
+    await runHook(plugins, "onRendered", rendered, context);
+
     result[outputPath] = rendered;
   }
 
   result["search.sgw.json"] = JSON.stringify(searchIndex, null, 4);
 
+  await runHook(plugins, "onBuildEnd", result);
   return result;
 }
 
@@ -298,4 +320,24 @@ async function getLastModified(dir: string, filepath: string) {
     if (commit) return new Date(commit.commit.committer.timestamp * 1000);
     else return undefined;
   } catch {}
+}
+
+async function runHook<T>(
+  plugins: SGWPlugin[],
+  hook: keyof SGWPlugin,
+  value: T,
+  ...args: any[]
+): Promise<T> {
+  let current = value;
+
+  for (const plugin of plugins) {
+    const fn = plugin[hook];
+
+    if (typeof fn === "function") {
+      const result = await (fn as any)(current, ...args);
+      if (result !== undefined) current = result;
+    }
+  }
+
+  return current;
 }

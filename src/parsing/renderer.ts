@@ -36,7 +36,7 @@ export async function toHtml(
         children.push(await toHtml(a, dirInput, config, linkMap, fields, templates, stripLinks));
       }
 
-      if (encase) return children.length > 0 ? `<p>${children.join("")}</p>` : "";
+      if (encase) return children.length > 0 ? `<div class="sgw-paragraph">${children.join("")}</div>` : "";
       else return children.join("");
     }
 
