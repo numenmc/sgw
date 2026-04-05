@@ -87,9 +87,10 @@ export async function build(
   await runHook(plugins, "onPageStructure", pages);
 
   for (const [pageName, pagePath] of Object.entries(pages)) {
+    const isIndex = pageName == config.build.index;
     const outputPath = path.join(
       ".",
-      (pageName == config.build.index ? "index" : safeFilename(pageName)) + ".html"
+      (isIndex ? "index" : `${pageName == "404" ? "" : "w/"}${safeFilename(pageName)}`) + ".html"
     );
 
     const context: PageContext = {
@@ -99,7 +100,7 @@ export async function build(
       config,
       fields: {}
     };
-    
+
     const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
     const tokens = tokenizeInput(pageContents);
     await runHook(plugins, "onTokens", tokens, context);
@@ -109,6 +110,16 @@ export async function build(
     const fields = {};
     const html = config.build.noDOMPurify
       ? await toHtml(
+        ast,
+        input,
+        config,
+        pages,
+        fields,
+        templates,
+        config.build.stripLinkExtension == true
+      )
+      : DOMPurify.sanitize(
+        await toHtml(
           ast,
           input,
           config,
@@ -117,17 +128,7 @@ export async function build(
           templates,
           config.build.stripLinkExtension == true
         )
-      : DOMPurify.sanitize(
-          await toHtml(
-            ast,
-            input,
-            config,
-            pages,
-            fields,
-            templates,
-            config.build.stripLinkExtension == true
-          )
-        );
+      );
 
     searchIndex.push({
       title: pageName,
@@ -297,7 +298,9 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 export function safeFilename(fileName: string) {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return fileName
+    .replace(/[^a-zA-Z0-9._\-:/\+\$@%~]/g, "_")
+    .replace(/:/g, "/");
 }
 
 function fixFilepath(filepath: string) {
@@ -319,7 +322,7 @@ async function getLastModified(dir: string, filepath: string) {
 
     if (commit) return new Date(commit.commit.committer.timestamp * 1000);
     else return undefined;
-  } catch {}
+  } catch { }
 }
 
 async function runHook<T>(
