@@ -349,8 +349,7 @@ async function runHook<T>(
     const fn = plugin[hook];
 
     if (typeof fn == "function") {
-      const result = await (fn as any)(current, ...args);
-      if (result == undefined) current = result;
+      await (fn as any)(current, ...args);
     }
   }
 }
