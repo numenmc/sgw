@@ -8,7 +8,7 @@ import { renderHtml, Theme } from "./templater.js";
 import type { SGWConfig } from "./config.types.js";
 import { JSDOM } from "jsdom";
 import createDOMPurify from "dompurify";
-import type { BuildResult, PageContext, SGWPlugin } from "./build.types.js";
+import type { BuildResult, PageContext, SGWPlugin, WrappedValue } from "./build.types.js";
 import * as git from "isomorphic-git";
 import type { PageIndex } from "./search.types.js";
 import { convert } from "html-to-text";
@@ -74,12 +74,12 @@ export async function build(
     for (const [k, v] of Object.entries(
       await recurseCollect(path.join(input, config.build.staticFiles))
     )) {
-      result[path.join(".", k)] = v;
+      result[path.join(".", k).split(path.sep).join("/")] = v;
     }
   }
 
   for (const [n, c] of Object.entries(theme.getCopyList())) {
-    result[path.join(".", n)] = c;
+    result[path.join(".", n).split(path.sep).join("/")] = c;
   }
 
   const pages: Record<string, string> = await createPageStructure(input);
@@ -101,28 +101,21 @@ export async function build(
       fields: {}
     };
 
-    const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
-    await runHook(plugins, "onRead", { value: pageContents }, context);
+    const pageContents: WrappedValue<string> = {
+      value: (await fs.readFile(pagePath, "utf-8")).toString()
+    };
+    await runHook(plugins, "onRead", pageContents, context);
 
-    const tokens = tokenizeInput(pageContents);
+    const tokens = tokenizeInput(pageContents.value);
     await runHook(plugins, "onTokens", tokens, context);
 
     const ast = parseTokens(tokens);
     await runHook(plugins, "onAST", ast, context);
 
     const fields = {};
-    const html = config.build.noDOMPurify
-      ? await toHtml(
-        ast,
-        input,
-        config,
-        pages,
-        fields,
-        templates,
-        config.build.stripLinkExtension == true
-      )
-      : DOMPurify.sanitize(
-        await toHtml(
+    const html: WrappedValue<string> = {
+      value: config.build.noDOMPurify
+        ? await toHtml(
           ast,
           input,
           config,
@@ -131,33 +124,46 @@ export async function build(
           templates,
           config.build.stripLinkExtension == true
         )
-      );
+        : DOMPurify.sanitize(
+          await toHtml(
+            ast,
+            input,
+            config,
+            pages,
+            fields,
+            templates,
+            config.build.stripLinkExtension == true
+          )
+        )
+    };
 
-    await runHook(plugins, "onHTML", { value: html }, context);
+    await runHook(plugins, "onHTML", html, context);
 
     searchIndex.push({
       title: pageName,
       path: outputPath,
-      content: pageName.startsWith("Template:") ? "" : convert(html, { preserveNewlines: false })
+      content: pageName.startsWith("Template:") ? "" : convert(html.value, { preserveNewlines: false })
     });
 
-    const rendered = renderHtml(
-      theme,
-      html,
-      pageName,
-      config,
-      startTime,
-      fixFilepath(path.relative(input, pagePath)),
-      fields,
-      gitCommit || undefined,
-      gitRoot
-        ? (await getLastModified(gitRoot, path.relative(gitRoot, pagePath))) || undefined
-        : undefined
-    );
+    const rendered: WrappedValue<string> = {
+      value: renderHtml(
+        theme,
+        html.value,
+        pageName,
+        config,
+        startTime,
+        fixFilepath(path.relative(input, pagePath)),
+        fields,
+        gitCommit || undefined,
+        gitRoot
+          ? (await getLastModified(gitRoot, path.relative(gitRoot, pagePath))) || undefined
+          : undefined
+      )
+    };
 
-    await runHook(plugins, "onRendered", { value: rendered }, context);
+    await runHook(plugins, "onRendered", rendered, context);
 
-    result[outputPath] = rendered;
+    result[outputPath] = rendered.value;
   }
 
   await runHook(plugins, "onSearchIndex", searchIndex);

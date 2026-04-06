@@ -65,11 +65,23 @@ program
 
       if (p == "/") p = "/index.html";
       if (!path.extname(p)) p = `${p}.html`;
-      const f = currentBuild[path.join(".", p)];
+      const joinedPath = path.join(".", p).split(path.sep).join("/");
+      console.log(joinedPath);
+      console.log(Object.keys(currentBuild));
+      const f = currentBuild[joinedPath];
+      const notFound = currentBuild["./404.html"];
       if (f) {
         res.type(path.extname(p));
         res.send(f);
-      } else res.status(404);
+      } else if (notFound) {
+        res.type("html");
+        res.send(notFound);
+        res.status(404);
+      } else {
+        res.type("txt");
+        res.send("404 Page Not Found - This will only show in the dev server and you can create a 404 page by creating a file called 404.sgw");
+        res.status(404);
+      }
     });
 
     server.listen(opts.port, () => {

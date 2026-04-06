@@ -14,7 +14,7 @@ To create an SGW project, run these commands:
 npm install @numenmc/sgw
 npx sgw init docs # "docs" can be any directory name
 
-# Clone a theme (optional, you can use defualts)
+# Clone a theme (optional, you can use defaults)
 cd docs
 npx sgw clone theme default # there are currently two built-in themes: "default" and "water"
 cd ..
@@ -24,7 +24,7 @@ npx sgw dev -i ./docs --port 7616
 
 # Build out
 # The -g argument tells sgw where the git repository root is. It is used for getting commits and modified dates.
-# You can use it in sgw dev but it is not reccomended, it may be slow
+# You can use it in sgw dev but it is not recommended, it may be slow
 # You can omit -g
 npx sgw build -i ./docs -g . -o ./dist
 ```
@@ -38,7 +38,7 @@ _Italic text_
 
     == Header 2 ==
    === Header 3 ===
-  ==== Headar 4 ====
+  ==== Header 4 ====
  ===== Header 5 =====
 ====== Header 6 ======
 
