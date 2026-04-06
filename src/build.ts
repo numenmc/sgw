@@ -91,7 +91,7 @@ export async function build(
     const outputPath = path.join(
       ".",
       (isIndex ? "index" : `${pageName == "404" ? "" : "w/"}${safeFilename(pageName)}`) + ".html"
-    );
+    ).split(path.sep).join("/");
 
     const context: PageContext = {
       pageName,
@@ -102,8 +102,11 @@ export async function build(
     };
 
     const pageContents = (await fs.readFile(pagePath, "utf-8")).toString();
+    await runHook(plugins, "onRead", { value: pageContents }, context);
+
     const tokens = tokenizeInput(pageContents);
     await runHook(plugins, "onTokens", tokens, context);
+
     const ast = parseTokens(tokens);
     await runHook(plugins, "onAST", ast, context);
 
@@ -130,6 +133,8 @@ export async function build(
         )
       );
 
+    await runHook(plugins, "onHTML", { value: html }, context);
+
     searchIndex.push({
       title: pageName,
       path: outputPath,
@@ -150,11 +155,12 @@ export async function build(
         : undefined
     );
 
-    await runHook(plugins, "onRendered", rendered, context);
+    await runHook(plugins, "onRendered", { value: rendered }, context);
 
     result[outputPath] = rendered;
   }
 
+  await runHook(plugins, "onSearchIndex", searchIndex);
   result["search.sgw.json"] = JSON.stringify(searchIndex, null, 4);
 
   await runHook(plugins, "onBuildEnd", result);
@@ -330,17 +336,15 @@ async function runHook<T>(
   hook: keyof SGWPlugin,
   value: T,
   ...args: any[]
-): Promise<T> {
+): Promise<void> {
   let current = value;
 
   for (const plugin of plugins) {
     const fn = plugin[hook];
 
-    if (typeof fn === "function") {
+    if (typeof fn == "function") {
       const result = await (fn as any)(current, ...args);
-      if (result !== undefined) current = result;
+      if (result == undefined) current = result;
     }
   }
-
-  return current;
 }

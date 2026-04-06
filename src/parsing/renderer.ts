@@ -83,9 +83,11 @@ export async function toHtml(
       const target = node.target.trim();
       const isExternal = /^https?:\/\//.test(target);
 
-      const href = isExternal ? target : linkMap[target];
+      const { page: splitTarget, fragment, literal } = isExternal ? { page: "", fragment: "" } : splitLinkTarget(target);
 
-      const label = node.text.trim() == "" ? target : node.text;
+      const fragmentId = fragment ? (literal ? fragment : createHeaderId(fragment)) : "";
+      const href = isExternal ? target : linkMap[splitTarget];
+      const label = node.text.trim() == "" ? splitTarget : node.text;
 
       if (href && isExternal) {
         return `<a class="sgw-external-link" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
@@ -93,7 +95,7 @@ export async function toHtml(
 
       if (href && !isExternal) {
         const isIndex = target == config.build.index;
-        return `<a href="${escapeHtml(isIndex ? "index" : `/w/${safeFilename(target)}`)}${stripLinks ? "" : ".html"}">${escapeHtml(label)}</a>`;
+        return `<a href="${escapeHtml(isIndex ? "index" : `/w/${safeFilename(splitTarget)}${fragmentId ? `#${fragmentId}` : ""}`)}${stripLinks ? "" : ".html"}">${escapeHtml(splitTarget)}</a>`;
       }
 
       return `<span class="sgw-unknown-link">${escapeHtml(label)}</span>`;
@@ -185,6 +187,61 @@ export function createHeaderId(text: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function unescapeLinkPart(str: string): string {
+  return str
+    .replace(/\\\\/g, "\\") // \\ to \
+    .replace(/\\#/g, "#");   // \# to #
+}
+
+function isEscaped(str: string, index: number): boolean {
+  let count = 0;
+  for (let i = index - 1; i >= 0 && str[i] == "\\"; i--) {
+    count++;
+  }
+  return count % 2 == 1;
+}
+
+function splitLinkTarget(input: string): {
+  page: string;
+  fragment: string | undefined;
+  literal: boolean;
+} {
+  let page = "";
+  let fragment = "";
+  let inFragment = false;
+  let literal = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+
+    if (char == "#" && !isEscaped(input, i) && !inFragment) {
+      const next = input[i + 1];
+
+      if (next == "#" && !isEscaped(input, i + 1)) {
+        literal = true;
+        inFragment = true;
+        i++;
+      } else {
+        inFragment = true;
+      }
+
+      continue;
+    }
+
+    if (inFragment) {
+      fragment += char;
+    } else {
+      page += char;
+    }
+  }
+
+  return {
+    page: unescapeLinkPart(page.trim()),
+    fragment: fragment ? unescapeLinkPart(fragment.trim()) : undefined,
+    literal,
+  };
 }
 
 function getField(fields: any, path: string): any | undefined {

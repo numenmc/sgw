@@ -9,7 +9,10 @@ export interface PageContext {
     fields: Record<string, any>;
 }
 
+export type WrappedValue<T = any> = { value: T };
+
 import type { SGWConfig } from "./config.types.js";
+import type { PageIndex } from "./search.types.js";
 
 export interface SGWPlugin {
     name: string;
@@ -18,18 +21,22 @@ export interface SGWPlugin {
 
     onPageStructure?(
         pages: Record<string, string>
-    ): Promise<Record<string, string>> | Record<string, string>;
+    ): Promise<void> | void;
 
-    onTokens?(tokens: any[], context: PageContext): Promise<any[]> | any[];
+    onRead?(wikitext: WrappedValue<string>, context: PageContext): Promise<void> | void;
 
-    onAST?(ast: any, context: PageContext): Promise<any> | any;
+    onTokens?(tokens: any[], context: PageContext): Promise<void> | void;
 
-    onHTML?(html: string, context: PageContext): Promise<string> | string;
+    onAST?(ast: any, context: PageContext): Promise<void> | void;
+
+    onHTML?(html: WrappedValue<string>, context: PageContext): Promise<void> | void;
+
+    onSearchIndex?(searchIndex: PageIndex[]): Promise<void> | void;
 
     onRendered?(
-        output: string,
+        output: WrappedValue<string>,
         context: PageContext
-    ): Promise<string> | string;
+    ): Promise<void> | void;
 
     onBuildEnd?(result: BuildResult): Promise<void> | void;
 }
