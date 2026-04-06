@@ -2,8 +2,9 @@
 
 Static site generated wiki software which uses a markup language similar to WikiText and Markdown.
 
-> [!WARNING]
 > Project is in very very very early development so nothing is stable.
+
+> The README is outdated. I'll update it when I get the time.
 
 # Guide
 
