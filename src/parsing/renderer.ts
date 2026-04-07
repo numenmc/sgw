@@ -95,7 +95,7 @@ export async function toHtml(
 
       if (href && !isExternal) {
         const isIndex = target == config.build.index;
-        return `<a href="${escapeHtml(isIndex ? "index" : `/w/${safeFilename(splitTarget)}${fragmentId ? `#${fragmentId}` : ""}`)}${stripLinks ? "" : ".html"}">${escapeHtml(splitTarget)}</a>`;
+        return `<a href="${escapeHtml(isIndex ? "index" : `/w/${safeFilename(splitTarget)}${fragmentId ? `#${fragmentId}` : ""}`)}${stripLinks ? "" : ".html"}">${escapeHtml(label)}</a>`;
       }
 
       return `<span class="sgw-unknown-link">${escapeHtml(label)}</span>`;
