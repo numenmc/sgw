@@ -112,7 +112,6 @@ export async function build(
     const ast = parseTokens(tokens);
     await runHook(plugins, "onAST", ast, context);
 
-    const fields = {};
     const html: WrappedValue<string> = {
       value: config.build.noDOMPurify
         ? await toHtml(
@@ -120,7 +119,7 @@ export async function build(
           input,
           config,
           pages,
-          fields,
+          context.fields,
           templates,
           config.build.stripLinkExtension == true
         )
@@ -130,7 +129,7 @@ export async function build(
             input,
             config,
             pages,
-            fields,
+            context.fields,
             templates,
             config.build.stripLinkExtension == true
           )
@@ -142,7 +141,7 @@ export async function build(
     searchIndex.push({
       title: pageName,
       path: outputPath,
-      content: pageName.startsWith("Template:") ? "" : convert(html.value, { preserveNewlines: false })
+      content: convert(html.value, { preserveNewlines: false })
     });
 
     const rendered: WrappedValue<string> = {
@@ -153,7 +152,7 @@ export async function build(
         config,
         startTime,
         fixFilepath(path.relative(input, pagePath)),
-        fields,
+        context.fields,
         gitCommit || undefined,
         gitRoot
           ? (await getLastModified(gitRoot, path.relative(gitRoot, pagePath))) || undefined
