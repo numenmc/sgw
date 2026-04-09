@@ -66,8 +66,6 @@ program
       if (p == "/") p = "/index.html";
       if (!path.extname(p)) p = `${p}.html`;
       const joinedPath = path.join(".", p).split(path.sep).join("/");
-      console.log(joinedPath);
-      console.log(Object.keys(currentBuild));
       const f = currentBuild[joinedPath];
       const notFound = currentBuild["./404.html"];
       if (f) {
