@@ -203,7 +203,7 @@ function isEscaped(str: string, index: number): boolean {
   return count % 2 == 1;
 }
 
-function splitLinkTarget(input: string): {
+export function splitLinkTarget(input: string): {
   page: string;
   fragment: string | undefined;
   literal: boolean;
