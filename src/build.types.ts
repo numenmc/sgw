@@ -2,6 +2,8 @@
 export type BuildResult = Record<string, Uint8Array | string>;
 
 export interface PageContext {
+    pages: Record<string, string>;
+    templates: Record<string, string>;
     pageName: string;
     pagePath: string;
     outputPath: string;

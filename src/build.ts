@@ -94,6 +94,8 @@ export async function build(
     ).split(path.sep).join("/");
 
     const context: PageContext = {
+      pages,
+      templates,
       pageName,
       pagePath,
       outputPath,
